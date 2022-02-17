@@ -86,6 +86,19 @@ describe('Registry', () => {
             const value = await r.get('TypeC', 'name');
             assert.equal(value, 'abc');
         })
+        it('works when implicators are async', async () => {
+            r.put('TypeA', 'name', 'a');
+            r.imply(
+                ['TypeA'], ['TypeB'],
+                async ctx => { ctx.TypeB = ctx.TypeA + 'b'; }
+            )
+            r.imply(
+                ['TypeB'], ['TypeC'],
+                async ctx => { ctx.TypeC = ctx.TypeB + 'c'; }
+            )
+            const value = await r.get('TypeC', 'name');
+            assert.equal(value, 'abc');
+        })
         it('works with multiple input and multiple output implicators', async () => {
             r.put('TypeA', 'name', 'a');
             r.imply(
