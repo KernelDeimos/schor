@@ -20,6 +20,10 @@ class ImplicatorContext {
         return this.values[type];
     }
     put (type, value) {
+        this.registry.tracer.log('implicator.put', {
+            type, value, implicator: this.implicator,
+        });
+
         // Future 'get's should get this new value
         this.values[type] = value;
         // Store 'put's to update the real values later
@@ -48,7 +52,6 @@ class Implicator {
             if ( values[inputType] !== undefined ) continue;
             values[inputType] = await registry.get(inputType, id);
             if ( values[inputType] === undefined ) {
-                ctx.cancel();
                 return false;
             }
         }
@@ -73,14 +76,14 @@ class Implicator {
         // TODO: Provide a way for conditions to specify a subset
         //       of input values as an optimization.
         for ( const condition of conditions ) {
-            condition(ctx);
+            await condition(ctx);
             if ( ! ctx_.stillValid ) break;
         }
 
         if ( ! ctx_.stillValid ) return false;
 
         // Run the actual implicator function
-        implicatorFn(ctx);
+        await implicatorFn(ctx);
 
         // Conditions were true and implicator was run; values can be updated now
         for ( let [k, v] of Object.entries(ctx_.outputValues) ) {
@@ -91,10 +94,32 @@ class Implicator {
     }
 }
 
+class NullTracer {
+    log () {}
+}
+
+class DebugTracer {
+    log (eventId, values) {
+        values = { ...values };
+        if ( values.implicator ) {
+            values.implicator = [
+                values.implicator.inputTypes,
+                values.implicator.outputTypes
+            ];
+        }
+        if ( values.value && values.value.constructor ) {
+            values.value = `Class::${values.value.constructor.name}`;
+        }
+        console.log(`[${eventId}]`, values);
+    }
+}
+
 class Registry {
-    constructor () {
+    constructor (opt_options) {
         this.interfaces_ = {};
         this.implicators_ = {};
+        const { tracer } = opt_options || {};
+        this.tracer = tracer || new NullTracer();
     }
 
     async put (type, id, value) {
@@ -105,20 +130,35 @@ class Registry {
     }
 
     async get (type, id) {
+        this.tracer.log('registry.get.invoked', { type, id });
         const contextOfGet = { id, registry: this, values: {} };
 
         // TODO: initial value can be done in a Proxy getter
         const allOfType = this.interfaces_[type] ||
             ( this.interfaces_[type] = {} );
-        if ( allOfType.hasOwnProperty(id) ) return allOfType[id];
+        if ( allOfType.hasOwnProperty(id) ) {
+            this.tracer.log('registry.get.returned', {
+                type, id, value: allOfType[id]
+            });
+            return allOfType[id];
+        }
 
         // Find an implication
         const implicators = this.implicators_[type] || [];
         for ( let implicator of implicators ) {
             const success = await implicator.run(contextOfGet);
-            if ( success ) return contextOfGet.values[type];
+            if ( success ) {
+                const value = contextOfGet.values[type];
+                this.tracer.log('registry.get.returned', {
+                    type, id, implicator, value
+                });
+                return value;
+            }
         }
 
+        this.tracer.log('registry.get.returned', {
+            type, id, value: undefined
+        });
         // return undefined
     }
 
@@ -152,7 +192,28 @@ class Registry {
     }
 }
 
+class DefinitionsUtil {
+    constructor (defs) {
+        this.defs = defs;
+    }
+    toString() {
+        let output = '';
+        for ( const def of this.defs ) {
+            output += def.toString() + '\n';
+        }
+        return output;
+    }
+}
+
 module.exports = {
     Registry,
     Implicator,
+    definitions: new DefinitionsUtil ([
+        ImplicatorNotApplicableError,
+        ImplicatorContext,
+        Implicator,
+        DebugTracer,
+        NullTracer,
+        Registry,
+    ]),
 };
