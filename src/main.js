@@ -1,3 +1,5 @@
+const { Base } = require('emod');
+
 class ImplicatorNotApplicableError extends Error {
     constructor () {
         super(ImplicatorNotApplicableError.name)
@@ -114,12 +116,11 @@ class DebugTracer {
     }
 }
 
-class Registry {
-    constructor (opt_options) {
+class Registry extends Base {
+    init () {
         this.interfaces_ = {};
         this.implicators_ = {};
-        const { tracer } = opt_options || {};
-        this.tracer = tracer || new NullTracer();
+        if ( ! this.tracer ) this.tracer = new NullTracer();
     }
 
     async put (type, id, value) {
@@ -192,6 +193,8 @@ class Registry {
     }
 }
 
+const ProxyRegistry = Registry.toProxyClass();
+
 class DefinitionsUtil {
     constructor (defs) {
         this.defs = defs;
@@ -207,6 +210,7 @@ class DefinitionsUtil {
 
 module.exports = {
     Registry,
+    ProxyRegistry,
     Implicator,
     definitions: new DefinitionsUtil ([
         ImplicatorNotApplicableError,
