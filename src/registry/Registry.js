@@ -78,5 +78,6 @@ class Registry extends Base {
 }
 
 const ProxyRegistry = Registry.toProxyClass();
+const NullRegistry = Registry.toNullClass();
 
-module.exports = { Registry, ProxyRegistry };
+module.exports = { Registry, ProxyRegistry, NullRegistry };

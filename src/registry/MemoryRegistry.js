@@ -1,8 +1,9 @@
-const { Base } = require("emod");
+const { ProxyRegistry, NullRegistry } = require("./Registry");
 
-class MemoryRegistry extends Base  {
+class MemoryRegistry extends ProxyRegistry  {
     init () {
         this.interfaces_ = {};
+        this.delegate_ = new NullRegistry();
     }
 
     async put (type, id, value) {
@@ -21,6 +22,8 @@ class MemoryRegistry extends Base  {
         if ( allOfType.hasOwnProperty(id) ) {
             return allOfType[id];
         }
+
+        return await this.delegate_.get(type, id);
     }
 
     imply (...args) {

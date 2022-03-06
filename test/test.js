@@ -42,6 +42,10 @@ describe('Registry', () => {
             const value = await r.get('FileExt', 'test');
             assert.equal(value, 'json5');
         })
+        it('should return undefined if value doesn\'t exist', async () => {
+            const value = await r.get('nothing', 'nothing');
+            assert.isUndefined(value);
+        })
     })
     describe('#imply()', () => {
         let r;
