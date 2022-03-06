@@ -1,17 +1,26 @@
 const { assert } = require('chai');
 
 const { Registry } = require('../src/main');
+const { ImplicatorRegistry } = require('../src/registry/ImplicatorRegistry');
+const { MemoryRegistry } = require('../src/registry/MemoryRegistry');
 
 // A simple transformation function for testing
 const extname = filePath => filePath.split('.').slice(-1)[0];
 
+const getTestRegistry = () => {
+    // let r = new MemoryRegistry();
+    // r = new ImplicatorRegistry({ delegate: r });
+    const r = new Registry();
+    return r;
+};
+
 describe('Registry', () => {
     it('should put() without throwing an Error', async () => {
-        let r = new Registry();
+        let r = getTestRegistry();
         await r.put('FilePath', 'test', 'name.json5');
     })
     it('should imply() without throwing an Error', async () => {
-        let r = new Registry();
+        let r = getTestRegistry();
         await r.imply(['a'], ['b'], ctx => {
             ctx.b = ctx.a;
         });
@@ -19,7 +28,7 @@ describe('Registry', () => {
     describe('#get()', () => {
         let r;
         beforeEach(() => {
-            r = new Registry();
+            r = getTestRegistry();
             r.put('FilePath', 'test', 'name.json5');
         });
         it('should get an explicit value', async () => {
@@ -37,7 +46,7 @@ describe('Registry', () => {
     describe('#imply()', () => {
         let r;
         beforeEach(() => {
-            r = new Registry();
+            r = getTestRegistry();
             r.put('FilePath', 'test', 'name.json5');
         });
         it('provides ctx.get() and ctx.put()', async () => {
