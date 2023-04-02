@@ -50,6 +50,7 @@ module.exports = {
     ProxyRegistry,
     Implicator,
     definitions: new DefinitionsUtil ([
+        ImplicatorRegistry,
         ImplicatorNotApplicableError,
         ImplicatorContext,
         Implicator,
